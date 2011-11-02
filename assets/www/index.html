@@ -1,0 +1,100 @@
+<!doctype html>
+<head>
+	<title>8tracks</title>
+	<script src="phonegap.0.9.5.js"></script>
+	
+	<link rel="stylesheet" href="jquery.mobile-1.0a4.1.min.css" />
+	<script src="jquery-1.6.min.js"></script>
+	<script src="jquery.mobile-1.0a4.1.min.js"></script>
+	
+	<script>
+		$(function()
+		{	
+			$.getJSON('http://8tracks.com/mixes.jsonp?callback=?', function(data)
+			{
+				var mixes = data.mixes;
+				var mix_list = $('#mixes');
+				var list_item = 0;
+				
+				$.each(mixes, function(key, val)
+				{
+					list_item = '<li><img src="'+val.cover_urls.sq100+'"><a href="mix.html?id='+val.id+'"><h3>'+val.name+'</h3><p>'+val.description+'</p></a></li>';
+					list_item = mix_list.append(list_item);
+				});
+				
+				mix_list.listview();
+			});
+		});
+		
+		$('.mix').live('pageshow', function()
+		{
+			var mix_id = 0;
+			var play_token = 0;
+			
+			$(this).siblings('.mix').remove();
+			
+			var delay = setTimeout(function()
+			{
+				mix_id = $.urlParam('id');
+				
+				$.getJSON('http://8tracks.com/mixes/'+mix_id+'.jsonp?callback=?', function(data)
+				{
+					var mix = data.mix;
+					var mix_name = mix.name, mix_desc = mix.description, mix_author = mix.user.login, mix_cover = mix.cover_urls.sq100;
+					
+					$('#mix-detail #meta').html('<h3>'+mix_name+'</h3>');
+					$('#mix-detail #meta').append('<p>'+mix_desc+'</p>');
+				});
+			}, 50);
+			
+			$('#play').bind('tap click', function()
+			{
+				if (play_token == 0)
+				{
+					$.getJSON('http://8tracks.com/sets/new.jsonp?callback=?', function(data)
+					{
+						play_token = data.play_token;
+						
+						$.getJSON('http://8tracks.com/sets/'+play_token+'/play.jsonp?mix_id='+mix_id+'&callback=?', function(data)
+						{
+							var track_url = data.set.track.url;
+							console.log(track_url);
+							var track = new Media('http://zanetaylor.net/the_boys_of_summer.mp3', function()
+							{
+								track.play();
+							});
+						});
+					});
+				} else
+				{
+					$.getJSON('http://8tracks.com/sets/'+play_token+'/play.jsonp?mix_id='+mix_id+'&callback=?', function(data)
+					{
+						var track_url = data.set.track.url;
+						console.log(track_url);
+						var track = new Media('http://zanetaylor.net/the_boys_of_summer.mp3', function()
+						{
+							track.play();
+						});
+					});
+				}
+			});
+		});
+
+		$.urlParam = function(name)
+		{
+			var results = new RegExp('[\\?&]' + name + '=([^&#]*)').exec(window.location.href);
+			return results[1] || 0;
+		}
+	</script>
+</head>
+<body>
+	<div id="home" data-role="page">
+		<header data-role="header">
+			<h1>8tracks Mixes</h1>
+		</header>
+		<div data-role="content">
+			<ul id="mixes" data-role="listView"></ul>
+		</div>
+	</div>
+</body>
+</html>
